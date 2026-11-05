@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>어텐스 — 강예원의 시선 (1280×800 인터랙티브 광고)</title>
+<style>
+  @font-face{font-family:"Pretendard";font-weight:400;src:url("../fonts/Pretendard-Regular.woff") format("woff"),url("https://yeji-torder.github.io/atense-gaze-ad/fonts/Pretendard-Regular.woff") format("woff");font-display:swap}
+  @font-face{font-family:"Pretendard";font-weight:700;src:url("../fonts/Pretendard-Bold.woff") format("woff"),url("https://yeji-torder.github.io/atense-gaze-ad/fonts/Pretendard-Bold.woff") format("woff");font-display:swap}
+  @font-face{font-family:"Pretendard";font-weight:800;src:url("../fonts/Pretendard-ExtraBold.woff") format("woff"),url("https://yeji-torder.github.io/atense-gaze-ad/fonts/Pretendard-ExtraBold.woff") format("woff");font-display:swap}
+  /* 2026-11-05 태블릿 실측: 송출 모듈의 iframe 이 sandbox(allow-same-origin 없음)라 origin 이 null → 같은 출처 글꼴이 CORS 로 막혀 대체 글꼴로 그려짐(사진·영상은 CORS 와 무관해 정상).
+     src 둘째 경로 = GitHub Pages 사본(Access-Control-Allow-Origin: *) — 첫 경로가 실패하면 그것을 받는다. */
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;background:#1b1917;overflow:hidden;font-family:"Pretendard",-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  /* 1280×800 고정 캔버스를 화면에 맞춰 축소 */
+  .wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .ad{flex:none;position:relative;width:1280px;height:800px;overflow:hidden;background:#fcfbfa;color:#2a2622;transform-origin:center;touch-action:none;cursor:pointer}
+  /* 얼굴: 영상(정면 → 왼쪽 → 정면 → 오른쪽 → 정면, 깜빡임)을 소리 없이 반복 재생. 오른쪽 끝은 배경으로 녹인다 — 2026-11-04 탭 반응 대신 영상만 */
+  #face{position:absolute;left:-85px;top:-60px;width:860px;height:860px;overflow:hidden;pointer-events:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 82%,transparent 99%);mask-image:linear-gradient(90deg,#000 82%,transparent 99%)}
+  #face video{position:absolute;left:0;top:58px;width:862px;height:802px;object-fit:fill}   /* 배율 1.114 — 아래 끝이 광고 아래(800)에 닿아 배경 띠가 안 생김(2026-11-04) */   /* 시안 자르기(배율 1.11, 왼쪽 위 -386,-2) 그대로 — tools/face.py */
+
+  /* 상단 0~134px 은 티오더 UI 영역 — 글자·버튼 금지 */
+  .copy{position:absolute;left:718px;top:142px;width:520px}
+  .logo{display:block;width:102px;height:auto}
+  h1{margin:24px 0 0;font-size:44px;line-height:1.3;font-weight:800;letter-spacing:-.04em;color:#2a2622}
+  h1 em{font-style:normal;color:#e0004d}
+  /* 제품 카드(시안 2026-11-04): 진분홍 카드 두 장 — 흰 칸에 제품 사진 + 아래 제품명, 그 아래 터치 안내 */
+  .cards{position:absolute;left:716px;top:347px;display:flex;gap:17px}
+  .card{position:relative;width:221px;height:274px;border-radius:22px;background:#e0004d;cursor:pointer;
+    box-shadow:0 14px 12px rgba(224,0,77,.1);padding:12px;overflow:hidden}
+  .card .pic{width:197px;height:185px;border-radius:14px;background:#fff center/cover}
+  .card .touch{position:absolute;right:10px;bottom:13px;display:block;width:41px;height:41px;pointer-events:none;transform-origin:40% 45%;animation:tapHint 1.8s ease-in-out infinite}   /* 2026-11-05 사용자 시안: 터치 아이콘(카드 오른쪽 아래) + 터치 유도 모션(살짝 눌렀다 뗌) */
+  #card2 .touch{animation-delay:.9s}
+  @keyframes tapHint{0%,45%,100%{transform:translate(0,0) scale(1)}58%{transform:translate(-2px,-2px) scale(.86)}70%{transform:translate(0,0) scale(1.04)}80%{transform:translate(0,0) scale(1)}}
+  .card .name{margin:14px 0 0 8px;color:#fff;font-size:17px;font-weight:700;line-height:1.35;letter-spacing:-.02em}
+  .more{position:absolute;left:716px;top:644px;width:459px;text-align:center;font-size:18px;font-weight:700;color:#2a2622;letter-spacing:-.02em}   /* 2026-11-04 문구를 눌러도 상품 정보 패널이 열리지 않음(패널 제거) */
+  .more em{font-style:normal;color:#e0004d}
+  .card .glow{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.35) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+  .card.shine .glow{animation:glint 1.3s ease-in-out}
+  @keyframes glint{to{transform:translateX(120%)}}
+
+  /* 제품 영상(2026-11-04): 카드를 누르면 화면 전체로 영상 → 끝나면 최종 이미지(QR). 상단 134px 에는 글자·버튼 없음(배경 그림만) */
+  /* 화면 맞춤 축소(transform scale) 때 가장자리 반 픽셀에 뒤의 밝은 광고 배경이 비쳐 왼쪽에 흰 선이 생겼다(2026-11-04 사용자 지적)
+     → 덮개를 사방 2px 크게 깔고(.ad 가 잘라 냄) 바탕도 최종 화면 가장자리색(어두운 적색)으로 */
+  .film{position:absolute;inset:-2px;z-index:10;background:#37000a;display:none;opacity:0;transition:opacity .35s}
+  .film:not(.show){display:none!important;visibility:hidden}   /* 닫힌 덮개는 어떤 전환 중이어도 확실히 숨김 */
+  .film.show{display:block}
+  .ad.filmOn{background:#e7e1d7}    /* 그래도 남는 가장자리 반 픽셀은 광고 바탕색이 비친다 → 영상 중엔 영상 가장자리색(베이지) */
+  .ad.filmEnd{background:#37000a}   /* 최종 화면에선 그 가장자리색(어두운 적색) */
+  .ad.filmCover > :not(.film){visibility:hidden}   /* 덮개가 다 뜬 뒤엔 뒤의 얼굴·카드를 숨겨 가장자리로 비치지 않게 */
+  .film.on{opacity:1}
+  .film video{position:absolute;left:2px;top:2px;width:1280px;height:800px;object-fit:cover}
+  .film .wait{position:absolute;left:2px;top:2px;width:1280px;height:800px;display:none;align-items:center;justify-content:center;pointer-events:none}
+  .film .wait span{padding:12px 24px;border-radius:999px;background:rgba(0,0,0,.5);font-size:20px;font-weight:700;color:#fff;letter-spacing:-.02em}   /* 밝은 첫 장면 위에서도 보이게 */
+  .film.wait-on:not(.done) .wait{display:flex}   /* 제품 영상을 탭 때 받으므로(미리 받지 않음) 첫 장면이 올 때까지 표시 */
+  /* 제품 영상 위 로고·QR 박스(HTML) — 2026-11-05 새 영상 2개(로고·QR 없음)로 바꾸며 옛 영상에 박혀 있던 것과 같은 위치·크기로 잰 값:
+     로고 (37,25) 너비 118 · 박스 (789,576) 401×128 모서리 16 · 글자 19.5px 줄 간격 27(첫 줄 일반·둘째 줄 굵게) · QR 흰 칸 106 — 옛 장면과 1~2px 안에서 일치(work/newvid) */
+  .film .ovl{position:absolute;left:2px;top:2px;width:1280px;height:800px;pointer-events:none;display:none}
+  .film.ovl-on:not(.done) .ovl{display:block}   /* 영상 중에만, 최종 화면에서는 숨김 */
+  .film .ovl .olo{position:absolute;left:37px;top:25px;width:118px}
+  .film .ovl .obox{position:absolute;left:789px;top:576px;width:401px;height:128px;border-radius:16px;background:#e0004d;padding:10px 10px 10px 23px;display:flex;align-items:center;justify-content:space-between}
+  .film .ovl .obox p{margin:0;font-size:19.5px;line-height:27px;color:#fff;white-space:nowrap;letter-spacing:-0.5px}   /* 2026-11-05 사용자: letter-spacing -0.5px */
+  .film .ovl .obox p span{display:block;font-weight:400}
+  .film .ovl .obox p b{display:block;font-weight:700}
+  .film .ovl .obox .oq{flex:none;width:106px;height:106px;border-radius:6px;background:#fff;padding:6px}
+  .film .ovl .obox .oq img{display:block;width:100%;height:100%}
+  .film .end{position:absolute;left:2px;top:2px;width:1280px;height:800px;opacity:0;transition:opacity .7s;pointer-events:none}
+  .film.done .end{opacity:1;pointer-events:auto}
+  .film.done video{visibility:hidden;transition:visibility 0s .7s}   /* 최종 화면이 다 뜨면 멈춘 영상도 숨김(베이지 가장자리가 비치지 않게) */
+  /* 최종 화면(2026-11-04 시안 그대로, 사진 한 장 대신 HTML): 배경은 글자 없는 제품 사진, 로고·문구·QR 박스는 글자로 */
+  .film .end{background:#4a0010 url("../assets/end-bg.jpg") center/cover}
+  .film .end .logo{position:absolute;left:104px;top:197px;width:102px;filter:brightness(0) invert(1)}
+  .film .end h2{position:absolute;left:104px;top:245px;margin:0;font-size:48px;line-height:67px;font-weight:700;letter-spacing:-.005em;color:#fff;white-space:nowrap}
+  .film .end .box{position:absolute;left:107px;top:427px;   /* 2026-11-05 첨부 시안대로 로고·제목·박스를 16px 위로(세로 가운데에 가깝게) */width:423px;height:201px;border-radius:22px;background:#e0004d;
+    box-shadow:0 18px 40px rgba(40,0,10,.35);display:flex;align-items:center;gap:26px;padding:0 18px}
+  .film .end .box .q{flex:none;width:164px;height:164px;border-radius:12px;background:#fff;padding:10px}
+  .film .end .box .q img{display:block;width:100%;height:100%}
+  .film .end .box p{margin:0;font-size:23px;line-height:34px;font-weight:700;letter-spacing:0;color:#fff}
+  .film .home{position:absolute;right:42px;bottom:38px;padding:12px 22px;border:0;border-radius:999px;background:rgba(255,255,255,.22);
+    color:#fff;font:700 16px "Pretendard",sans-serif;letter-spacing:-.02em;cursor:pointer}   /* 2026-11-04 뒷배경 블러(backdrop-filter) 제거: 사파리·웹뷰에서 닫힌 뒤 오른쪽에 분홍 잔상이 남는다는 지적 */
+  .film .skip{display:block}
+  .film.done .skip{display:none}
+  /* 터치 지점 물결 */
+  .ripple{position:absolute;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;border:2px solid rgba(196,18,79,.55);pointer-events:none;animation:rip .7s ease-out forwards}
+  @keyframes rip{from{transform:scale(.3);opacity:1}to{transform:scale(1.4);opacity:0}}
+  .loading{position:absolute;left:390px;top:400px;transform:translate(-50%,-50%);font-size:15px;color:#a99e97}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"><div class="ad" id="ad">
+  <div id="face"><video id="facev" muted loop playsinline preload="none" data-src="../assets/face.mp4" data-poster="../assets/face-poster.jpg"></video></div>   <!-- 큰 파일은 시작(INT_PLAY) 뒤에 — 2026-11-05 태블릿 송출 가이드 -->
+  <div class="loading" id="loading">불러오는 중…</div>
+
+  <div class="copy">
+    <img class="logo" src="../assets/logo.svg" alt="atense">
+    <h1><em>47세 강예원</em>의 동안 노하우<br>어텐스 유스 라인</h1>
+  </div>
+  <div class="cards">
+    <div class="card" id="card">
+      <div class="pic" role="img" aria-label="어텐스 NAD+NMN 유스 스킨부스터" data-bg="../assets/tile-booster.jpg"></div>
+      <div class="name">NAD+NMN<br>유스 스킨부스터</div>
+      <svg class="touch" width="41" height="41" aria-hidden="true" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.7558 12.0385L15.9133 16.3638L16.3688 15.7466C16.5889 15.4495 16.8695 15.1889 17.2279 15.1076C17.7536 14.9947 18.302 15.0608 18.7858 15.2953C19.2666 15.5284 19.6563 15.9145 19.8938 16.3929C19.6034 15.7988 19.8367 15.0829 20.4173 14.7933C21.5814 14.2126 23.0057 14.7016 23.6063 15.8853C23.544 15.7588 23.5089 15.6206 23.5032 15.4796C23.4973 15.3328 23.5235 15.1864 23.5799 15.0508C23.6363 14.9152 23.7217 14.7935 23.83 14.6942C23.9383 14.5949 24.0669 14.5204 24.2069 14.476L24.6004 14.3567C25.7082 14.0209 26.9061 14.5499 27.4335 15.6071L28.7675 18.2814C29.9395 20.6311 30.5263 21.8074 30.6424 22.9171C30.7328 23.7488 30.6475 24.5901 30.3919 25.3867C30.1363 26.1832 29.7162 26.9172 29.1587 27.541C28.4247 28.3561 27.2782 28.9281 24.985 30.072C23.7819 30.6721 23.1809 30.9719 22.5579 31.1248C21.6083 31.3586 20.6127 31.3484 19.6579 31.0933C19.0322 30.9269 18.4261 30.6147 17.2129 29.9881L11.8653 27.2284C11.4642 27.0202 11.1415 26.6874 10.946 26.2801C10.7504 25.8727 10.6925 25.4128 10.7809 24.9697C10.8349 24.6926 10.948 24.4305 11.1124 24.2011C11.2769 23.9718 11.4889 23.7806 11.734 23.6405C11.979 23.5005 12.2514 23.415 12.5325 23.3898C12.8136 23.3645 13.0969 23.4002 13.3629 23.4944L15.9545 24.3969L10.5801 13.6226C10.1332 12.7267 10.4818 11.6457 11.3592 11.208C12.2356 10.7709 13.3089 11.1426 13.7558 12.0385Z" fill="white"/><path d="M2.18359 11.7454L5.71011 11.493" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M4.46094 4.47241L7.12633 6.79528" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M17.9277 3.54736L15.6049 6.21275" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M11.2383 1L11.5123 4.9906" stroke-width="2" stroke-linecap="round" stroke="white"/></svg>   <!-- 터치 아이콘을 파일 요청 없이 HTML 에 직접(2026-11-05 사용자 "태블릿에서 안 나와") -->
+      <div class="glow"></div>
+    </div>
+    <div class="card" id="card2">
+      <div class="pic" role="img" aria-label="어텐스 NAD+NMN 유스 에센스 크림" data-bg="../assets/tile-cream.jpg"></div>
+      <div class="name">NAD+NMN<br>유스 에센스 크림</div>
+      <svg class="touch" width="41" height="41" aria-hidden="true" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.7558 12.0385L15.9133 16.3638L16.3688 15.7466C16.5889 15.4495 16.8695 15.1889 17.2279 15.1076C17.7536 14.9947 18.302 15.0608 18.7858 15.2953C19.2666 15.5284 19.6563 15.9145 19.8938 16.3929C19.6034 15.7988 19.8367 15.0829 20.4173 14.7933C21.5814 14.2126 23.0057 14.7016 23.6063 15.8853C23.544 15.7588 23.5089 15.6206 23.5032 15.4796C23.4973 15.3328 23.5235 15.1864 23.5799 15.0508C23.6363 14.9152 23.7217 14.7935 23.83 14.6942C23.9383 14.5949 24.0669 14.5204 24.2069 14.476L24.6004 14.3567C25.7082 14.0209 26.9061 14.5499 27.4335 15.6071L28.7675 18.2814C29.9395 20.6311 30.5263 21.8074 30.6424 22.9171C30.7328 23.7488 30.6475 24.5901 30.3919 25.3867C30.1363 26.1832 29.7162 26.9172 29.1587 27.541C28.4247 28.3561 27.2782 28.9281 24.985 30.072C23.7819 30.6721 23.1809 30.9719 22.5579 31.1248C21.6083 31.3586 20.6127 31.3484 19.6579 31.0933C19.0322 30.9269 18.4261 30.6147 17.2129 29.9881L11.8653 27.2284C11.4642 27.0202 11.1415 26.6874 10.946 26.2801C10.7504 25.8727 10.6925 25.4128 10.7809 24.9697C10.8349 24.6926 10.948 24.4305 11.1124 24.2011C11.2769 23.9718 11.4889 23.7806 11.734 23.6405C11.979 23.5005 12.2514 23.415 12.5325 23.3898C12.8136 23.3645 13.0969 23.4002 13.3629 23.4944L15.9545 24.3969L10.5801 13.6226C10.1332 12.7267 10.4818 11.6457 11.3592 11.208C12.2356 10.7709 13.3089 11.1426 13.7558 12.0385Z" fill="white"/><path d="M2.18359 11.7454L5.71011 11.493" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M4.46094 4.47241L7.12633 6.79528" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M17.9277 3.54736L15.6049 6.21275" stroke-width="2" stroke-linecap="round" stroke="white"/><path d="M11.2383 1L11.5123 4.9906" stroke-width="2" stroke-linecap="round" stroke="white"/></svg>   <!-- 터치 아이콘을 파일 요청 없이 HTML 에 직접(2026-11-05 사용자 "태블릿에서 안 나와") -->
+      <div class="glow"></div>
+    </div>
+  </div>
+  <div class="more" id="more">제품을 터치하여 <em>강예원의 동안 관리법</em>을 확인해보세요</div>
+
+  <div class="film" id="film">
+    <video id="vid" muted playsinline preload="none"></video>
+    <div class="wait"><span>영상을 불러오는 중…</span></div>
+    <div class="ovl"><img class="olo" src="../assets/logo.svg" alt="atense"><div class="obox"><p><span>47세 강예원의 동안 관리 노하우</span><b id="ovlName">어텐스 스킨 부스터 보러가기</b></p><div class="oq"><img class="oqr" src="../assets/qr.svg" alt="어텐스 스킨부스터 QR"></div></div></div>
+    <div class="end">
+      <img class="logo" src="../assets/logo.svg" alt="atense">
+      <h2>청담동 에스테틱 VVIP 관리를 담은<br>어텐스 NAD+NMN 유스 라인</h2>
+      <div class="box">
+        <div class="q"><img class="qr" src="../assets/qr.svg" alt="어텐스 제품 페이지 QR"></div>
+        <p>QR을 찍고<br>강예원의 동안 비법을<br>확인해보세요</p>
+      </div>
+    </div>
+    <button class="home" id="home">처음으로</button>
+  </div>
+</div></div>
+
+<script>
+/* 얼굴: 영상 한 개를 소리 없이 반복 재생한다(탭에 반응하지 않음 — 2026-11-04 "화면 돌리는거말고 영상으로만") */
+const ad = document.getElementById('ad'), facev = document.getElementById('facev');
+
+// 1280×800 비율 유지 축소
+// 1280×800 비율 유지 축소. .ad 는 flex:none — 창이 1280 보다 좁은 태블릿(1088×680)에서 flex 가 .ad 를 줄여 오른쪽 15% 가 잘렸다(2026-11-05 진단판 실측).
+const wrap = document.getElementById('wrap');
+function fit(){ const s = Math.min(innerWidth/1280, innerHeight/800); ad.style.transform = `scale(${s})`; }
+addEventListener('resize', fit); fit();
+window.__fit = () => ({ w: innerWidth, h: innerHeight, adw: ad.offsetWidth, scale: ad.style.transform });
+
+let ready = false;
+function faceReady(){ if (ready) return; ready = true; document.getElementById('loading').remove(); if (!stillShot) facev.play().catch(() => {}); }
+facev.addEventListener('loadeddata', faceReady);
+// 시작: 첫 화면(인트로)에 필요한 얼굴 영상·카드 사진만 이때 불러온다(그 전엔 본체 HTML 만). 제품 영상은 미리 받지 않고 카드를 눌렀을 때 받는다(2026-11-05 사용자: 처음엔 인트로만 불러와 리소스 줄이기).
+function start(){
+  if (started) return; started = true; if (typeof idleReset === 'function') idleReset();
+  for (const el of document.querySelectorAll('[data-bg]')) el.style.backgroundImage = `url('${el.dataset.bg}')`;
+  facev.poster = facev.dataset.poster; facev.src = facev.dataset.src; facev.load(); if (!stillShot) facev.play().catch(() => {});
+}
+// 화면이 잠깐 가려졌다 돌아와도 영상이 멈춰 있지 않게
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ready && !film.classList.contains('on')) facev.play().catch(() => {}); });
+
+function toAd(e){ const r = ad.getBoundingClientRect(); return { x: (e.clientX - r.left) * 1280 / r.width, y: (e.clientY - r.top) * 800 / r.height }; }
+
+// 제품 영상: 스킨부스터·에센스 카드를 누르면 그 영상을 화면 전체로 재생 → 끝나면 최종 이미지(QR).
+// 영상 중 탭 = 건너뛰고 최종 이미지, 최종 이미지에서 「처음으로」 또는 30초 무입력 = 첫 화면으로
+const film = document.getElementById('film'), vid = document.getElementById('vid');
+const VIDEOS = { card: '../assets/video-booster.mp4', card2: '../assets/video-cream.mp4' };
+let filmTimer = 0, coverTimer = 0;
+// 제품 영상은 미리 받지 않고 카드를 눌렀을 때 받는다(2026-11-05 사용자: 처음엔 인트로만 불러와 리소스 줄이기). 받는 대로 MediaSource 에 이어 붙여(조각 mp4) 재생하되,
+// 받는 속도를 재서 끝까지 끊기지 않을 만큼 쌓인 뒤에 시작한다 — 빠른 회선이면 바로, 느리면 「불러오는 중 N%」 뒤에(크롬은 재생 전엔 3초치만 받고 멈춰 <video src> 만으로는 못 한다).
+// 받은 조각은 메모리에 두어 다음 탭은 바로 뜨고 다시 받지 않는다. MediaSource 를 못 쓰면 다 받은 뒤 blob 으로, fetch 가 안 되면 주소를 바로 건다.
+const FILM_MIME = 'video/mp4; codecs="avc1.640020"', FILM_SEC = { card: 13.1, card2: 10.1 }, filmCache = {}, waitEl = film.querySelector('.wait span'); let filmReq = 0;
+function fetchFilm(id){
+  const c = filmCache[id] || (filmCache[id] = { chunks: [], got: 0, total: 0, done: false, err: null, started: false, t0: 0, on: null });
+  if (!c.started) { c.started = true; c.err = null; c.chunks = []; c.got = 0; c.t0 = performance.now(); (async () => {
+    const res = await fetch(VIDEOS[id]); if (!res.ok) throw new Error(res.status);
+    c.total = +res.headers.get('content-length') || 0; const rd = res.body.getReader();
+    for (;;) { const { done, value } = await rd.read(); if (done) break; c.chunks.push(value); c.got += value.length; if (c.on) c.on(); }
+    c.done = true; if (c.on) c.on();
+  })().catch(e => { c.err = e; c.started = false; if (c.on) c.on(); }); }
+  return c;
+}
+function startFilm(id, req){
+  const c = fetchFilm(id), alive = () => req === filmReq && film.classList.contains('show') && !film.classList.contains('done');
+  const direct = () => { if (alive()) { vid.src = VIDEOS[id]; vid.currentTime = 0; vid.play().catch(endFilm); } };
+  const progress = () => { if (c.total && !c.done) waitEl.textContent = `영상을 불러오는 중… ${Math.min(99, Math.round(c.got / c.total * 100))}%`; };
+  const enough = () => { if (c.done) return true; if (!c.total || c.got < 200000) return false;
+    const el = (performance.now() - c.t0) / 1000, rate = el > .4 ? c.got / el : 0, br = c.total / FILM_SEC[id];   // 받는 속도 vs 영상 비트레이트(여유 15%)
+    return c.got / c.total >= 1 - Math.min(rate / br, 1.15) / 1.15; };
+  if (window.MediaSource && MediaSource.isTypeSupported(FILM_MIME)) {
+    const ms = new MediaSource(); vid.src = URL.createObjectURL(ms); let sb = null, fed = 0, playing = false;
+    const pump = () => { if (!alive()) { c.on = null; return; } if (c.err) { c.on = null; direct(); return; } progress();
+      try { if (sb && !sb.updating) { if (fed < c.chunks.length) sb.appendBuffer(c.chunks[fed++]); else if (c.done && ms.readyState === 'open') ms.endOfStream(); } } catch (e) {}
+      if (!playing && fed > 0 && enough()) { playing = true; vid.play().catch(endFilm); } };
+    ms.addEventListener('sourceopen', () => { if (!alive()) return; sb = ms.addSourceBuffer(FILM_MIME); sb.addEventListener('updateend', pump); c.on = pump; pump(); }, { once: true });
+  } else {
+    c.on = () => { if (!alive()) { c.on = null; return; } progress(); if (c.err) { c.on = null; direct(); }
+      else if (c.done) { c.on = null; vid.src = URL.createObjectURL(new Blob(c.chunks, { type: 'video/mp4' })); vid.currentTime = 0; vid.play().catch(endFilm); } };
+    c.on();
+  }
+}
+function endFilm(){ vid.pause(); film.classList.add('done'); ad.classList.add('filmEnd'); clearTimeout(filmTimer); filmTimer = setTimeout(closeFilm, 30000); }
+function closeFilm(){
+  if (typeof idleReset === 'function') setTimeout(idleReset, 0);   // 첫 화면으로 돌아오면 무입력 시간을 다시 잰다(덮개 show 가 지워진 뒤)
+  // 2026-11-05 사용자: 첫 화면으로 갈 때 바탕색이 0.4초 늦게 바뀌어 어두운 적색이 보임 → 덮개·바탕색을 전환 없이 즉시 되돌린다
+  clearTimeout(filmTimer); clearTimeout(coverTimer); filmReq++; vid.pause();
+  film.classList.remove('on', 'done', 'show'); ad.classList.remove('filmCover', 'filmOn', 'filmEnd');
+  film.querySelector('.end').style.transition = 'none'; film.querySelector('.end').style.opacity = '0';
+  vid.removeAttribute('src'); vid.load();
+  if (!stillShot) facev.play().catch(() => {});
+}
+function playFilm(id){
+  clearTimeout(idleT);   // 제품 영상·최종 화면 중에는 무입력 종료를 재지 않는다
+  clearTimeout(filmTimer); facev.pause();
+  film.classList.add('ovl-on'); document.getElementById('ovlName').textContent = id === 'card' ? '어텐스 스킨 부스터 보러가기' : '어텐스 에센스 크림 보러가기';   // 두 제품 영상 모두 로고·QR 박스를 HTML 로 얹는다(2026-11-05 에센스 영상도 로고·QR 없는 새 영상으로 교체)
+  vid.muted = true; const req = ++filmReq; film.classList.add('wait-on'); waitEl.textContent = '영상을 불러오는 중…';   // 소리 없이(2026-11-04 사용자: 영상 노래 음소거 — 파일에서도 음성 트랙을 뺌)
+  film.classList.remove('done'); ad.classList.remove('filmEnd'); film.querySelector('.end').style.transition = ''; film.querySelector('.end').style.opacity = ''; ad.classList.add('filmOn'); film.classList.add('show'); clearTimeout(coverTimer); coverTimer = setTimeout(() => ad.classList.add('filmCover'), 400); void film.offsetWidth; film.classList.add('on');
+  startFilm(id, req);   // 받으면서 재생(위 startFilm)
+}
+vid.addEventListener('ended', endFilm);
+for (const ev of ['waiting', 'stalled']) vid.addEventListener(ev, () => { waitEl.textContent = '영상을 불러오는 중…'; film.classList.add('wait-on'); });   // 영상 데이터가 올 때까지 「불러오는 중」
+vid.addEventListener('playing', () => film.classList.remove('wait-on'));   // canplay 는 MediaSource 첫 조각에서 바로 뜨므로 실제 재생 시작에서만 지운다
+for (const id of ['card', 'card2']) {
+  const el = document.getElementById(id);
+  el.addEventListener('pointerdown', e => e.stopPropagation());          // 고개는 돌리지 않음
+  el.addEventListener('click', () => playFilm(id));                       // 터치 화면에서도 소리 재생이 허용되는 click 에서 시작
+}
+film.addEventListener('pointerdown', e => { e.stopPropagation(); if (!film.classList.contains('done')) endFilm(); else { clearTimeout(filmTimer); filmTimer = setTimeout(closeFilm, 30000); } });
+document.getElementById('home').addEventListener('pointerdown', e => { e.stopPropagation(); closeFilm(); });
+ad.addEventListener('pointerdown', e => {
+  const p = toAd(e);                                      // 빈 곳 탭: 물결 표시만(얼굴 영상은 그대로)
+  const r = document.createElement('div'); r.className = 'ripple'; r.style.left = p.x + 'px'; r.style.top = p.y + 'px';
+  ad.appendChild(r); setTimeout(() => r.remove(), 750);
+});
+
+// 제품 카드 반짝: 영상이 한 바퀴 돌 때마다(정면으로 돌아올 때) 카드에 빛이 한 번 지나간다
+facev.addEventListener('timeupdate', () => { if (facev.currentTime < .3 && !ad.classList.contains('shone')) { ad.classList.add('shone'); for (const c of document.querySelectorAll('.card')) { c.classList.remove('shine'); void c.offsetWidth; c.classList.add('shine'); } } else if (facev.currentTime > 1) ad.classList.remove('shone'); });
+
+window.__state = () => ({ ready, face: facev.paused ? 'paused' : 'playing', t: facev.currentTime, loop: facev.loop, film: film.classList.contains('on') ? (film.classList.contains('done') ? 'end' : (vid.paused ? 'paused' : 'playing')) : '' });  // 검사용
+
+// ?v=-1|0|1 : 정지 이미지 추출용(영상의 정면·왼쪽 끝·오른쪽 끝 장면에서 멈춤)
+const q = new URLSearchParams(location.search).get('v'), stillShot = q !== null;
+if (stillShot) { const t = { '-1': 2.4, '0': 0, '1': 6.4 }[q] ?? 0; facev.addEventListener('loadeddata', () => { facev.pause(); facev.currentTime = t; }); facev.addEventListener('seeked', () => facev.pause()); facev.addEventListener('play', () => facev.pause()); }
+
+/* ── 태블릿 송출 규약(2026-11-05, 다비치 광고와 같은 방식): 부모(송출 모듈)가 postMessage 로 {type:"INT_PLAY"} 를 보내면 그때 재생을 시작하고
+   곧바로 {type:"INT_IMPRESSION"} 을 돌려준다(글꼴·영상 로딩을 기다리지 않음). {type:"INT_CLOSE"} 가 오면 정리하고 INT_CLOSE(FORCE_CLOSE) 로 답한다.
+   iframe 이 아니거나 ?demo 면 바로 시작한다(브라우저에서 직접 볼 때). 큰 파일(얼굴 영상·프레임·제품 영상)은 시작 뒤에만 불러온다. */
+// 2026-11-05 15시 수정(사용자 "태블릿에 송출이 아예 안돼"): 송출 모듈의 origin 을 확정할 수 없어 허용 목록으로 거르지 않는다 — 어느 부모가 보내든 INT_PLAY 를 받고 그 origin 으로 답한다.
+// 또 INT_PLAY 를 기다리지 않고 문서 load 뒤 바로 시작한다(가이드 ②: 큰 파일은 문서 로드 또는 INT_PLAY 이후). 모듈이 INT 규약을 안 쓰거나 다른 origin 이어도 광고가 나온다.
+const INT_KNOWN = ['https://kr.dev.transfer.ad.base.torder.com', 'https://kr.qa.transfer.ad.base.torder.com', 'https://kr.prd.transfer.ad.base.torder.com'];   // 다비치 번들에서 본 값(참고용)
+let intState = 'idle', intPeer = null, started = false;
+function intSend(msg){ try { parent.postMessage(msg, intPeer && intPeer !== 'null' ? intPeer : '*'); } catch (e) {} }
+addEventListener('message', e => {
+  let d = e.data; if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
+  if (!d || typeof d !== 'object') return;
+  const type = d.type || d.event || d.name;
+  if (type === 'INT_PLAY') { if (intState !== 'idle') return; intPeer = e.origin; intState = 'playing'; start(); intSend({ type: 'INT_IMPRESSION' }); }
+  else if (type === 'INT_CLOSE') { if (intState === 'terminal') return; intPeer = intPeer || e.origin; intState = 'terminal'; intSend({ type: 'INT_CLOSE', body: { code: 'FORCE_CLOSE' } }); teardown(); }
+});
+function teardown(){ try { closeFilm(); } catch (e) {} for (const v of document.querySelectorAll('video')) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} } }
+const embedded = parent !== window, demo = new URLSearchParams(location.search).has('demo');
+if (!embedded || demo) start();
+else { addEventListener('load', () => setTimeout(start, 0)); setTimeout(start, 3000); }   // iframe 안: 문서 load 뒤(늦어도 3초 뒤) 시작. INT_PLAY 가 먼저 오면 그때.
+// 무입력 종료(2026-11-05 사용자 "송출되고 다음 광고로 안 넘어가" — 다비치 번들과 같게): 송출 모듈은 광고가 {type:'INT_ENDED'} 를 보내야 다음 광고로 넘어간다(모듈이 시간을 재지 않음).
+// iframe 안에서 터치가 IDLE_SEC 초 동안 없으면 INT_ENDED(TIMEOUT) 를 한 번 보낸다. 제품 영상·최종 화면(QR) 중에는 재지 않고, 첫 화면으로 돌아오면 다시 잰다. 브라우저에서 직접 볼 때(?demo·iframe 아님)는 끝내지 않는다.
+var IDLE_SEC = 15, idleT = 0;   // var: 브라우저에서 직접 열 때 start() 가 이 줄보다 먼저 돌아 idleReset 이 불린다(let 이면 TDZ 오류로 시작이 끊김 — 2026-11-05 export 검사에서 발견)
+function idleEnd(){ if (intState === 'terminal') return; intState = 'terminal'; intSend({ type: 'INT_ENDED', body: { code: 'TIMEOUT' } }); }
+function idleReset(){ clearTimeout(idleT); if (!embedded || demo || intState === 'terminal' || film.classList.contains('show')) return; idleT = setTimeout(idleEnd, IDLE_SEC * 1000); }
+document.addEventListener('pointerdown', idleReset, true);
+addEventListener('message', e => { let d = e.data; if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } } if (d && (d.type || d.event || d.name) === 'INT_PLAY') idleReset(); });
+if (started) idleReset();
+window.__int = () => ({ state: intState, started, idle: !!idleT });   // 검사용
+</script>
+</body>
+</html>
